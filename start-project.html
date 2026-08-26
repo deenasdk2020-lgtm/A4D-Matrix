@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Start a Project — A4DM</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="project-page">
+  <div class="background" aria-hidden="true">
+    <div class="glow glow-purple"></div>
+    <div class="glow glow-blue"></div>
+  </div>
+
+  <header class="navbar">
+    <a class="logo" href="index.html">A4DM<span>.</span></a>
+    <a class="back-link" href="index.html">← Back home</a>
+  </header>
+
+  <main class="project-form-page">
+    <div class="project-form-wrap">
+      <div class="reveal">
+        <p class="eyebrow">START A PROJECT</p>
+        <h1>Tell us what<br><span>you're building.</span></h1>
+        <p class="form-intro">Share a few details and we'll know where to start. The actual email service can be connected later.</p>
+      </div>
+
+      <form class="project-form reveal reveal-2" id="projectForm">
+        <label>Name<input type="text" name="name" placeholder="Your name" required></label>
+        <label>Email<input type="email" name="email" placeholder="you@example.com" required></label>
+        <label>Project type<select name="type"><option>Web Development</option><option>Mobile Development</option><option>Data Analytics</option><option>AI / ML</option><option>Other</option></select></label>
+        <label>Tell us about your project<textarea name="message" rows="6" placeholder="What are you looking to build?" required></textarea></label>
+        <button class="primary-button submit-button" type="submit">Send enquiry <span>↗</span></button>
+        <p class="form-note" id="formNote"></p>
+      </form>
+    </div>
+  </main>
+
+  <script src="js/script.js"></script>
+</body>
+</html>
