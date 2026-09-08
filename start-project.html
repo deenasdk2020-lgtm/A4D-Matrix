@@ -4,38 +4,128 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Start a Project — A4DM</title>
+  <link rel="icon" type="image/png" href="assets/images/logo/logo 1.png">
   <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body class="project-page">
   <div class="background" aria-hidden="true">
     <div class="glow glow-purple"></div>
     <div class="glow glow-blue"></div>
   </div>
 
-  <header class="navbar">
-    <a class="logo" href="index.html">A4DM<span>.</span></a>
-    <a class="back-link" href="index.html">← Back home</a>
+  <header class="project-header">
+    <a class="back-link" href="index.html" aria-label="Back to home">
+      ← <span>Back</span>
+    </a>
+
   </header>
 
   <main class="project-form-page">
     <div class="project-form-wrap">
-      <div class="reveal">
-        <p class="eyebrow">START A PROJECT</p>
-        <h1>Tell us what<br><span>you're building.</span></h1>
-        <p class="form-intro">Share a few details and we'll know where to start. The actual email service can be connected later.</p>
+
+      <div class="project-form-intro reveal">
+        <img class="project-brand-logo" src="assets/images/logo/brand logo.png" alt="A4DMatrix">
+        <div class="project-form-intro-copy">
+         <p>Small Team, Big Dream</p>
+          <h2><span>Your vision. Our</span></h2>
+          <h2><span>craft. Built together.</span></h2>
+          <p>Your ideas shape where we begin. We listen, design, and build together—refining every detail to create something uniquely yours.</p>
+          <ul>
+            <li>Collaborative from first idea to final detail.</li>
+            <li>Practical, thoughtful, and built for real people.</li>
+            <li>Always learning and improving the work.</li>
+          </ul>
+        </div>
       </div>
 
       <form class="project-form reveal reveal-2" id="projectForm">
-        <label>Name<input type="text" name="name" placeholder="Your name" required></label>
-        <label>Email<input type="email" name="email" placeholder="you@example.com" required></label>
-        <label>Project type<select name="type"><option>Web Development</option><option>Mobile Development</option><option>Data Analytics</option><option>AI / ML</option><option>Other</option></select></label>
-        <label>Tell us about your project<textarea name="message" rows="6" placeholder="What are you looking to build?" required></textarea></label>
-        <button class="primary-button submit-button" type="submit">Send enquiry <span>↗</span></button>
-        <p class="form-note" id="formNote"></p>
+
+        <div class="composer-row composer-static-row">
+          <span class="composer-label">To:</span>
+          <span class="composer-value">A4DMatrix</span>
+        </div>
+
+        <div class="composer-pair-row">
+          <label class="composer-row">
+            <span class="composer-label">From:</span>
+            <input
+              type="text"
+              name="name"
+              placeholder="Name"
+              autocomplete="name"
+              required
+            >
+          </label>
+
+          <label class="composer-row">
+            <input
+              type="email"
+              name="email"
+              placeholder="Email"
+              aria-label="Email"
+              autocomplete="email"
+              required
+            >
+          </label>
+        </div>
+
+        <label class="composer-row">
+          <span class="composer-label">Phone / WhatsApp:</span>
+          <input
+            type="tel"
+            name="phone"
+            placeholder="Optional"
+            autocomplete="tel"
+          >
+        </label>
+
+        <label class="composer-row">
+          <span class="composer-label">Subject:</span>
+          <input
+            type="text"
+            name="subject"
+            placeholder="Let's build something"
+          >
+        </label>
+
+        <label class="composer-message-row">
+          <span class="composer-label">Message:</span>
+          <textarea
+            name="message"
+            rows="8"
+            placeholder="Tell us about your idea..."
+            required
+          ></textarea>
+        </label>
+
+        <button
+          class="primary-button submit-button"
+          type="submit"
+        >
+          Send enquiry <span>↗</span>
+        </button>
+
+        <p class="form-note" id="formNote" aria-live="polite"></p>
+
       </form>
+
     </div>
   </main>
 
-  <script src="js/script.js"></script>
+<script
+  type="text/javascript"
+  src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js">
+</script>
+
+<script>
+  if (window.emailjs) {
+    window.emailjs.init({
+      publicKey: "HD-Vda6EY74mf6lVD"
+    });
+  }
+</script>
+
+<script src="js/script.js"></script>
 </body>
 </html>

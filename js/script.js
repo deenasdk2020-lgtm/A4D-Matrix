@@ -132,31 +132,159 @@
     });
   };
 
-  const setupMemberHotspots = () => {
-    const photoPlaceholder = document.querySelector(".about-photo-placeholder");
-    const hotspots = photoPlaceholder ? Array.from(photoPlaceholder.querySelectorAll(".member-hotspot")) : [];
+  const setupProjectThreeDemo = () => {
+    const modal = document.getElementById("projectThreeDemo");
+    const video = document.getElementById("projectThreeDemoVideo");
+    if (!modal || !video) return () => {};
 
-    if (!photoPlaceholder || !hotspots.length) return;
+    let isOpen = false;
 
-    const activateMember = (hotspot) => {
-      hotspots.forEach((item) => item.classList.toggle("active", item === hotspot));
-      photoPlaceholder.classList.add("has-active");
+    const hideDemo = () => {
+      modal.classList.remove("is-open");
+      modal.setAttribute("aria-hidden", "true");
+      video.pause();
+      video.currentTime = 0;
+      document.body.classList.remove("project-demo-open");
+      isOpen = false;
     };
 
-    hotspots.forEach((hotspot) => {
-      hotspot.addEventListener("pointerenter", () => activateMember(hotspot));
-      hotspot.addEventListener("focus", () => activateMember(hotspot));
-      hotspot.addEventListener("click", () => activateMember(hotspot));
+    const closeDemo = () => {
+      if (!isOpen) return;
+      if (window.history.state?.projectThreeDemo) {
+        window.history.back();
+        return;
+      }
+      hideDemo();
+    };
+
+    modal.querySelectorAll("[data-demo-close]").forEach((control) => {
+      control.addEventListener("click", closeDemo);
     });
 
-    activateMember(hotspots.find((hotspot) => hotspot.classList.contains("active")) || hotspots[0]);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && modal.classList.contains("is-open")) closeDemo();
+    });
+
+    window.addEventListener("popstate", () => {
+      if (isOpen) hideDemo();
+    });
+
+    return () => {
+      if (isOpen) return;
+      window.history.pushState({ ...(window.history.state || {}), projectThreeDemo: true }, "", window.location.href);
+      modal.classList.add("is-open");
+      modal.setAttribute("aria-hidden", "false");
+      document.body.classList.add("project-demo-open");
+      video.muted = true;
+      video.currentTime = 0;
+      video.load();
+      const startVideo = () => {
+        video.play().catch((error) => {
+          console.warn("Project 3 demo could not autoplay:", error);
+        });
+      };
+      if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+        startVideo();
+      } else {
+        video.addEventListener("loadeddata", startVideo, { once: true });
+      }
+      isOpen = true;
+    };
   };
+
+  const openProjectThreeDemo = setupProjectThreeDemo();
 
   const setupWorkScroll = () => {
     const stage = document.querySelector(".work-grid");
     const originalCards = stage ? Array.from(stage.querySelectorAll(".project-card")) : [];
 
     if (!stage || !originalCards.length) return;
+
+    const restoreKey = "a4dm-return-to-work";
+    const restoreWorkPosition = () => {
+      const savedPosition = sessionStorage.getItem(restoreKey);
+      if (!savedPosition) return;
+
+      sessionStorage.removeItem(restoreKey);
+      const scrollPosition = Number(savedPosition);
+      if (!Number.isFinite(scrollPosition)) return;
+
+      window.requestAnimationFrame(() => {
+        window.scrollTo({ top: scrollPosition, behavior: "auto" });
+      });
+    };
+
+    stage.addEventListener("click", (event) => {
+      const imageLink = event.target.closest(".project-image");
+      if (!imageLink || !stage.contains(imageLink)) return;
+
+      const destination = imageLink.getAttribute("href");
+      if (!destination || destination === "#") return;
+      const isProjectThree = imageLink.classList.contains("image-three");
+
+      event.preventDefault();
+      sessionStorage.setItem(restoreKey, String(window.scrollY));
+
+      if (prefersReducedMotion) {
+        if (isProjectThree) {
+          openProjectThreeDemo();
+          return;
+        }
+        window.location.assign(destination);
+        return;
+      }
+
+      const imageBounds = imageLink.getBoundingClientRect();
+      const transitionImage = document.createElement("div");
+      const imageClone = imageLink.querySelector("img")?.cloneNode(true);
+      const transitionPhoneWidth = Math.min(window.innerWidth * 0.64, 260);
+      const transitionPhoneHeight = transitionPhoneWidth * 19.5 / 9;
+
+      transitionImage.className = `project-image-transition${isProjectThree ? " project-three-transition" : ""}`;
+      transitionImage.style.setProperty("--transition-top", `${imageBounds.top}px`);
+      transitionImage.style.setProperty("--transition-left", `${imageBounds.left}px`);
+      transitionImage.style.setProperty("--transition-width", `${imageBounds.width}px`);
+      transitionImage.style.setProperty("--transition-height", `${imageBounds.height}px`);
+      if (isProjectThree) {
+        transitionImage.style.setProperty("--transition-target-top", `${(window.innerHeight - transitionPhoneHeight) / 2}px`);
+        transitionImage.style.setProperty("--transition-target-left", `${(window.innerWidth - transitionPhoneWidth) / 2}px`);
+        transitionImage.style.setProperty("--transition-target-width", `${transitionPhoneWidth}px`);
+        transitionImage.style.setProperty("--transition-target-height", `${transitionPhoneHeight}px`);
+      }
+      transitionImage.style.background = getComputedStyle(imageLink).background;
+      if (imageClone) transitionImage.appendChild(imageClone);
+
+      let hasStartedLoading = false;
+      transitionImage.addEventListener("transitionend", (event) => {
+        if (event.target !== transitionImage || (!isProjectThree && event.propertyName !== "transform") || hasStartedLoading) return;
+        hasStartedLoading = true;
+
+        const loadingIndicator = document.createElement("span");
+        loadingIndicator.className = "project-loading-indicator";
+        loadingIndicator.textContent = "Loading project...";
+        transitionImage.appendChild(loadingIndicator);
+        transitionImage.classList.add("is-loading");
+
+        if (isProjectThree) {
+          window.setTimeout(() => {
+            openProjectThreeDemo();
+            transitionImage.remove();
+            document.body.classList.remove("project-transition-active");
+          }, 100);
+          return;
+        }
+
+        window.setTimeout(() => {
+          window.location.assign(destination);
+        }, 100);
+      });
+
+      document.body.appendChild(transitionImage);
+      document.body.classList.add("project-transition-active");
+      window.requestAnimationFrame(() => {
+        transitionImage.classList.add("is-expanding");
+      });
+    });
 
     const prependCards = originalCards.map((card) => card.cloneNode(true));
     const appendCards = originalCards.map((card) => card.cloneNode(true));
@@ -175,6 +303,8 @@
     let pointerStartX = 0;
     let pointerStartY = 0;
     let dragStartScroll = 0;
+    let holdUntil = 0;
+    let heldCard = null;
 
     const normalizeScroll = () => {
       while (stage.scrollLeft >= trackStart * 2) stage.scrollLeft -= trackStart;
@@ -183,20 +313,25 @@
 
     const updateCards = () => {
       const stageCenter = stage.scrollLeft + stage.clientWidth / 2;
-      const curve = parseFloat(getComputedStyle(stage).getPropertyValue("--arc-curve")) || 0;
       const isMobile = mobileQuery.matches;
       const focusRange = stage.clientWidth * (isMobile ? 0.66 : 0.56);
-      const maxScale = isMobile ? 0.045 : 0.08;
       const minOpacity = isMobile ? 0.78 : 0.72;
 
       cards.forEach((card) => {
         const cardCenter = card.offsetLeft + card.offsetWidth / 2;
-        const distance = Math.min(Math.abs(cardCenter - stageCenter) / focusRange, 1);
-        const emphasis = 1 - distance;
+        const signedDistance = Math.max(-1, Math.min(1, (cardCenter - stageCenter) / focusRange));
+        const distance = Math.abs(signedDistance);
+        const surfaceDepth = Math.sqrt(Math.max(0, 1 - signedDistance * signedDistance));
+        const translateZ = surfaceDepth * 44;
 
-        card.style.setProperty("--arc-y", `${curve * distance * distance}px`);
-        card.style.setProperty("--arc-scale", (1 + emphasis * maxScale).toFixed(3));
-        card.style.setProperty("--arc-opacity", (minOpacity + emphasis * (1 - minOpacity)).toFixed(3));
+        card.style.setProperty("--arc-x", `${(signedDistance * 12).toFixed(2)}px`);
+        card.style.setProperty("--arc-y", "0px");
+        card.style.setProperty("--arc-z", `${translateZ.toFixed(2)}px`);
+        card.style.setProperty("--arc-rotate", `${(signedDistance * -10).toFixed(2)}deg`);
+        const scale = 1 - 0.28 * Math.pow(distance, 1.35);
+
+        card.style.setProperty("--arc-scale", scale.toFixed(3));
+        card.style.setProperty("--arc-opacity", (minOpacity + surfaceDepth * (1 - minOpacity)).toFixed(3));
       });
     };
 
@@ -205,7 +340,25 @@
       lastTime = time;
 
       if (!prefersReducedMotion && !isDragging) {
-        stage.scrollLeft += (mobileQuery.matches ? mobileAutoSpeed : autoSpeed) * elapsed;
+        const stageCenter = stage.scrollLeft + stage.clientWidth / 2;
+        let centeredCard = null;
+        let centeredDistance = Infinity;
+
+        cards.forEach((card) => {
+          const distance = Math.abs(card.offsetLeft + card.offsetWidth / 2 - stageCenter);
+          if (distance < centeredDistance) {
+            centeredCard = card;
+            centeredDistance = distance;
+          }
+        });
+
+        if (time >= holdUntil && centeredDistance <= 0.75 && centeredCard !== heldCard) {
+          heldCard = centeredCard;
+          holdUntil = time + 700;
+        } else if (time >= holdUntil) {
+          stage.scrollLeft += (mobileQuery.matches ? mobileAutoSpeed : autoSpeed) * elapsed;
+          if (centeredDistance > 2) heldCard = null;
+        }
       }
 
       normalizeScroll();
@@ -223,6 +376,8 @@
       if (!event.deltaX) return;
 
       event.preventDefault();
+      holdUntil = 0;
+      heldCard = null;
       stage.scrollLeft += event.deltaX;
       normalizeScroll();
       updateCards();
@@ -231,6 +386,8 @@
     stage.addEventListener("pointerdown", (event) => {
       if (!mobileQuery.matches || !isTouchDevice || event.pointerType === "mouse") return;
       isDragging = true;
+      holdUntil = 0;
+      heldCard = null;
       dragIntent = null;
       pointerStartX = event.clientX;
       pointerStartY = event.clientY;
@@ -281,6 +438,7 @@
 
     stage.scrollLeft = trackStart;
     updateCards();
+    restoreWorkPosition();
     window.requestAnimationFrame(animate);
   };
 
@@ -321,10 +479,10 @@
       cards.forEach((card, index) => {
         const distance = index - activePosition;
         const absoluteDistance = Math.min(Math.abs(distance), 1.8);
-        const angle = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, distance * arcAngle));
         const scale = Math.max(0.86, 1 - absoluteDistance * 0.07);
-        const opacity = Math.max(0.25, 1 - absoluteDistance * 0.39);
+        const opacity = Math.max(0.04, 1 - absoluteDistance * 0.78);
         const blur = Math.max(0, (absoluteDistance - 0.08) * 1.25);
+        const angle = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, distance * arcAngle));
         const x = (1 - Math.cos(angle)) * stage.clientWidth * radiusX;
         const outerOffset = Math.max(0, Math.abs(distance) - 1) * 120 * Math.sign(distance);
         const y = Math.sin(angle) * radiusY + outerOffset;
@@ -378,37 +536,84 @@
   };
 
   const setupProjectForm = () => {
-    const form = document.getElementById("projectForm");
-    const formNote = document.getElementById("formNote");
+  const form = document.getElementById("projectForm");
+  const formNote = document.getElementById("formNote");
 
-    if (!form || !formNote) return;
+  if (!form || !formNote) return;
 
-    const fields = Array.from(form.querySelectorAll("input, select, textarea"));
+  const fields = Array.from(form.querySelectorAll("input, select, textarea"));
 
-    fields.forEach((field) => {
-      field.addEventListener("blur", () => validateField(field));
-      field.addEventListener("input", () => validateField(field));
-    });
+  fields.forEach((field) => {
+    field.addEventListener("blur", () => validateField(field));
+    field.addEventListener("input", () => validateField(field));
+  });
 
-    form.addEventListener("submit", (event) => {
-      event.preventDefault();
+  form.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  formNote.classList.remove("is-fading");
 
-      let valid = true;
-      fields.forEach((field) => {
-        if (!validateField(field)) valid = false;
-      });
+  let valid = true;
 
-      if (!valid) {
-        formNote.textContent = "Please fix the highlighted fields and try again.";
-        formNote.style.color = "rgba(255, 146, 146, 0.9)";
-        return;
-      }
+  fields.forEach((field) => {
+    if (!validateField(field)) {
+      valid = false;
+    }
+  });
 
-      formNote.textContent = "Thanks — your project brief has been captured. We’ll review it and get back to you soon.";
-      formNote.style.color = "rgba(164, 233, 194, 0.9)";
-      form.reset();
-    });
-  };
+  if (!valid) {
+    formNote.textContent = "Please fix the highlighted fields and try again.";
+    formNote.style.color = "rgba(255, 146, 146, 0.9)";
+    return;
+  }
+
+  const submitButton = form.querySelector(".submit-button");
+
+  // Show sending state
+  submitButton.disabled = true;
+  submitButton.innerHTML = 'Sending... <span>↗</span>';
+
+  formNote.textContent = "";
+
+  try {
+    await emailjs.sendForm(
+      "service_dp3mhh7",
+      "template_lvsl8pn",
+      form
+    );
+
+    // Success
+    formNote.textContent =
+      "Thank you. Your enquiry has been sent successfully. We will get back to you shortly.";
+
+    formNote.style.color = "rgba(164, 233, 194, 0.9)";
+
+    window.setTimeout(() => {
+      formNote.classList.add("is-fading");
+      window.setTimeout(() => {
+        formNote.textContent = "";
+        formNote.classList.remove("is-fading");
+      }, 350);
+    }, 2500);
+
+    form.reset();
+
+  } catch (error) {
+
+    console.error("EmailJS Error:", error);
+
+    formNote.textContent =
+      "Sorry, we couldn't send your enquiry. Please try again.";
+
+    formNote.style.color = "rgba(255, 146, 146, 0.9)";
+
+  } finally {
+
+    submitButton.disabled = false;
+    submitButton.innerHTML = 'Send enquiry <span>↗</span>';
+
+  }
+});
+};
 
   updateNavbarState();
   window.addEventListener("scroll", updateNavbarState, { passive: true });
@@ -418,7 +623,6 @@
   setupRevealObserver();
   setupNavHighlight();
   setupCardGlow();
-  setupMemberHotspots();
   setupWorkScroll();
   setupServicesScroll();
   setupProjectForm();
