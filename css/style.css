@@ -521,6 +521,10 @@ main section[id] {
   padding: 56px 0;
 }
 
+.work-section .section-heading {
+  margin-bottom: 24px;
+}
+
 .work-grid {
   --arc-curve: 72px;
   display: flex;
@@ -528,7 +532,7 @@ main section[id] {
   gap: 34px;
   overflow-x: auto;
   overscroll-behavior-x: contain;
-  padding: 88px 0 96px;
+  padding: 32px 0 64px;
   scroll-behavior: auto;
   scroll-snap-type: none;
   scrollbar-width: none;
@@ -1203,7 +1207,7 @@ main section.about-template {
 
 .about-team-layout .about-photo-placeholder {
   width: min(100%, 430px);
-  height: 500px;
+  height: 485px;
   min-height: 400px;
 }
 
@@ -2158,13 +2162,13 @@ main section.about-template {
 }
 
 @media (max-width: 768px) {
-  .work-grid {
+  .work-section .work-grid {
     --arc-curve: 28px;
     display: flex;
     overflow-x: auto;
     overscroll-behavior-x: contain;
     gap: 15px;
-    padding: 46px 2px 58px;
+    padding: 24px 2px 40px;
     scroll-snap-type: none;
     scrollbar-width: none;
     touch-action: pan-y;

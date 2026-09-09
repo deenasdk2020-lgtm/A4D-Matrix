@@ -2,6 +2,7 @@
   const body = document.body;
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
+  let resetWorkDemoTransition = () => {};
 
   const updateNavbarState = () => {
     const navbar = document.getElementById("navbar");
@@ -93,6 +94,14 @@
     if (!sections.length || !navItems.length) return;
 
     const updateActiveLink = () => {
+      const isAtPageBottom = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 1;
+      if (isAtPageBottom) {
+        navItems.forEach((link) => {
+          link.classList.toggle("active", link.getAttribute("href") === "#contact");
+        });
+        return;
+      }
+
       const viewportCenter = window.innerHeight * 0.35;
       let activeId = "home";
 
@@ -138,6 +147,7 @@
     if (!modal || !video) return () => {};
 
     let isOpen = false;
+    let returnScrollPosition = 0;
 
     const hideDemo = () => {
       modal.classList.remove("is-open");
@@ -166,11 +176,15 @@
     });
 
     window.addEventListener("popstate", () => {
-      if (isOpen) hideDemo();
+      if (!isOpen) return;
+      hideDemo();
+      resetWorkDemoTransition();
+      window.scrollTo({ top: returnScrollPosition, behavior: "auto" });
     });
 
     return () => {
       if (isOpen) return;
+      returnScrollPosition = window.scrollY;
       window.history.pushState({ ...(window.history.state || {}), projectThreeDemo: true }, "", window.location.href);
       modal.classList.add("is-open");
       modal.setAttribute("aria-hidden", "false");
@@ -200,6 +214,24 @@
 
     if (!stage || !originalCards.length) return;
 
+    let activeTransitionImage = null;
+    let transitionTimeout = null;
+    const clearTransition = () => {
+      if (transitionTimeout !== null) {
+        window.clearTimeout(transitionTimeout);
+        transitionTimeout = null;
+      }
+      if (activeTransitionImage) {
+        activeTransitionImage.remove();
+        activeTransitionImage = null;
+      }
+      document.body.classList.remove("project-transition-active");
+    };
+
+    resetWorkDemoTransition = clearTransition;
+    window.addEventListener("pagehide", clearTransition);
+    window.addEventListener("pageshow", clearTransition);
+
     const restoreKey = "a4dm-return-to-work";
     const restoreWorkPosition = () => {
       const savedPosition = sessionStorage.getItem(restoreKey);
@@ -223,6 +255,7 @@
       const isProjectThree = imageLink.classList.contains("image-three");
 
       event.preventDefault();
+      clearTransition();
       sessionStorage.setItem(restoreKey, String(window.scrollY));
 
       if (prefersReducedMotion) {
@@ -236,6 +269,7 @@
 
       const imageBounds = imageLink.getBoundingClientRect();
       const transitionImage = document.createElement("div");
+      activeTransitionImage = transitionImage;
       const imageClone = imageLink.querySelector("img")?.cloneNode(true);
       const transitionPhoneWidth = Math.min(window.innerWidth * 0.64, 260);
       const transitionPhoneHeight = transitionPhoneWidth * 19.5 / 9;
@@ -266,15 +300,17 @@
         transitionImage.classList.add("is-loading");
 
         if (isProjectThree) {
-          window.setTimeout(() => {
+          transitionTimeout = window.setTimeout(() => {
+            transitionTimeout = null;
             openProjectThreeDemo();
-            transitionImage.remove();
-            document.body.classList.remove("project-transition-active");
+            clearTransition();
           }, 100);
           return;
         }
 
-        window.setTimeout(() => {
+        transitionTimeout = window.setTimeout(() => {
+          transitionTimeout = null;
+          clearTransition();
           window.location.assign(destination);
         }, 100);
       });
