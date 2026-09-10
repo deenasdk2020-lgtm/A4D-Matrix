@@ -229,7 +229,6 @@
     };
 
     resetWorkDemoTransition = clearTransition;
-    window.addEventListener("pagehide", clearTransition);
     window.addEventListener("pageshow", clearTransition);
 
     const restoreKey = "a4dm-return-to-work";
@@ -308,11 +307,7 @@
           return;
         }
 
-        transitionTimeout = window.setTimeout(() => {
-          transitionTimeout = null;
-          clearTransition();
-          window.location.assign(destination);
-        }, 100);
+        window.location.assign(destination);
       });
 
       document.body.appendChild(transitionImage);
