@@ -2175,7 +2175,7 @@ main section.about-template {
   }
 
   .work-grid .project-card.reveal-on-scroll {
-    flex: 0 0 min(260px, calc(82vw - 28px));
+    flex: 0 0 min(280px, calc(82vw - 16px));
     transform: translate3d(var(--arc-x), var(--arc-y), var(--arc-z)) rotateY(var(--arc-rotate)) scale(var(--arc-scale));
     opacity: var(--arc-opacity);
     scroll-snap-align: center;
@@ -2306,7 +2306,7 @@ main section.about-template {
   }
 
   .services-section {
-    min-height: 420vh;
+    min-height: 320vh;
     padding: 0;
   }
 

@@ -331,7 +331,8 @@
     const trackStart = cards[originalCards.length].offsetLeft - cards[0].offsetLeft;
 
     const autoSpeed = 0.032;
-    const mobileAutoSpeed = 0.018;
+    const mobileAutoSpeed = 0.045;
+    const mobileHoldDuration = 140;
     const mobileQuery = window.matchMedia("(max-width: 768px)");
     let lastTime = performance.now();
     let isDragging = false;
@@ -390,7 +391,7 @@
 
         if (time >= holdUntil && centeredDistance <= 0.75 && centeredCard !== heldCard) {
           heldCard = centeredCard;
-          holdUntil = time + 700;
+          holdUntil = time + (mobileQuery.matches ? mobileHoldDuration : 700);
         } else if (time >= holdUntil) {
           stage.scrollLeft += (mobileQuery.matches ? mobileAutoSpeed : autoSpeed) * elapsed;
           if (centeredDistance > 2) heldCard = null;
@@ -447,7 +448,7 @@
       if (dragIntent !== "horizontal") return;
 
       event.preventDefault();
-      stage.scrollLeft = dragStartScroll - deltaX;
+      stage.scrollLeft = dragStartScroll - deltaX * 1.12;
       normalizeScroll();
       updateCards();
     }, { passive: false });
@@ -560,13 +561,21 @@
             : "This field is required.";
     } else if (field.type === "email" && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
       message = "Please enter a valid email address.";
-    } else if (field.name === "message" && value.length < 20) {
-      message = "Please share a little more detail so we can understand your project.";
+    } else if (field.name === "name" && !/^[A-Za-z ]+$/.test(value)) {
+      message = "Name can contain letters and spaces only.";
+    } else if (field.name === "phone" && value && !/^[6-9]\d{9}$/.test(value)) {
+      message = "Enter a valid 10-digit Indian number starting with 6, 7, 8, or 9.";
     }
 
     field.setCustomValidity(message);
     field.style.borderColor = message ? "rgba(255, 118, 118, 0.7)" : "";
     field.setAttribute("aria-invalid", String(Boolean(message)));
+
+    const errorElement = field.nextElementSibling;
+    if (errorElement && errorElement.classList.contains("field-error")) {
+      errorElement.textContent = message;
+      errorElement.hidden = !message;
+    }
 
     return !message;
   };
@@ -580,8 +589,41 @@
   const fields = Array.from(form.querySelectorAll("input, select, textarea"));
 
   fields.forEach((field) => {
+    const errorElement = document.createElement("span");
+    errorElement.className = "field-error";
+    errorElement.hidden = true;
+    errorElement.setAttribute("role", "alert");
+    errorElement.style.gridColumn = "1 / -1";
+    errorElement.style.padding = "0 0 8px";
+    errorElement.style.color = "rgba(255, 146, 146, 0.9)";
+    errorElement.style.fontSize = "11px";
+    errorElement.style.lineHeight = "1.4";
+    field.insertAdjacentElement("afterend", errorElement);
+    field.setAttribute("aria-describedby", "project-form-error-" + field.name);
+    errorElement.id = "project-form-error-" + field.name;
+
     field.addEventListener("blur", () => validateField(field));
     field.addEventListener("input", () => validateField(field));
+
+    if (field.tagName === "INPUT") {
+      field.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+
+        const nextFieldName = {
+          name: "email",
+          email: "phone",
+          phone: "subject",
+          subject: "message"
+        }[field.name];
+        const nextField = nextFieldName && form.elements.namedItem(nextFieldName);
+
+        if (!nextField) return;
+
+        event.preventDefault();
+        nextField.focus();
+        nextField.setSelectionRange(nextField.value.length, nextField.value.length);
+      });
+    }
   });
 
   form.addEventListener("submit", async (event) => {
@@ -591,6 +633,7 @@
   let valid = true;
 
   fields.forEach((field) => {
+    field.value = field.value.trim();
     if (!validateField(field)) {
       valid = false;
     }
