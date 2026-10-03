@@ -252,13 +252,15 @@
 
       const destination = imageLink.getAttribute("href");
       if (!destination || destination === "#") return;
+      const projectCard = imageLink.closest(".project-card");
       const isProjectThree = imageLink.classList.contains("image-three");
+      const isProjectFourNoZoom = projectCard?.classList.contains("project-no-zoom");
 
       event.preventDefault();
       clearTransition();
       sessionStorage.setItem(restoreKey, String(window.scrollY));
 
-      if (prefersReducedMotion) {
+      if (isProjectFourNoZoom || prefersReducedMotion) {
         if (isProjectThree) {
           openProjectThreeDemo();
           return;
@@ -328,6 +330,17 @@
     appendCards.forEach((card) => stage.append(card));
 
     const cards = Array.from(stage.querySelectorAll(".project-card"));
+    let cardMetrics = [];
+    let pendingDragFrame = false;
+
+    const cacheCardMetrics = () => {
+      cardMetrics = cards.map((card) => ({
+        offsetLeft: card.offsetLeft,
+        offsetWidth: card.offsetWidth
+      }));
+    };
+
+    cacheCardMetrics();
     const trackStart = cards[originalCards.length].offsetLeft - cards[0].offsetLeft;
 
     const autoSpeed = 0.032;
@@ -354,8 +367,8 @@
       const focusRange = stage.clientWidth * (isMobile ? 0.66 : 0.56);
       const minOpacity = isMobile ? 0.78 : 0.72;
 
-      cards.forEach((card) => {
-        const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+      cards.forEach((card, index) => {
+        const cardCenter = cardMetrics[index].offsetLeft + cardMetrics[index].offsetWidth / 2;
         const signedDistance = Math.max(-1, Math.min(1, (cardCenter - stageCenter) / focusRange));
         const distance = Math.abs(signedDistance);
         const surfaceDepth = Math.sqrt(Math.max(0, 1 - signedDistance * signedDistance));
@@ -449,8 +462,15 @@
 
       event.preventDefault();
       stage.scrollLeft = dragStartScroll - deltaX * 1.12;
-      normalizeScroll();
-      updateCards();
+      if (!pendingDragFrame) {
+        pendingDragFrame = true;
+
+        window.requestAnimationFrame(() => {
+          normalizeScroll();
+          updateCards();
+          pendingDragFrame = false;
+        });
+      }
     }, { passive: false });
 
     const stopDrag = (event) => {
@@ -476,6 +496,7 @@
     stage.scrollLeft = trackStart;
     updateCards();
     restoreWorkPosition();
+    window.addEventListener("resize", cacheCardMetrics);
     window.requestAnimationFrame(animate);
   };
 
@@ -538,7 +559,18 @@
       });
     };
 
-    window.addEventListener("scroll", render, { passive: true });
+    let renderPending = false;
+
+    window.addEventListener("scroll", () => {
+      if (renderPending) return;
+
+      renderPending = true;
+
+      window.requestAnimationFrame(() => {
+        render();
+        renderPending = false;
+      });
+    }, { passive: true });
     window.addEventListener("resize", () => {
       refreshMeasurements();
       render();
@@ -564,7 +596,7 @@
     } else if (field.name === "name" && !/^[A-Za-z ]+$/.test(value)) {
       message = "Name can contain letters and spaces only.";
     } else if (field.name === "phone" && value && !/^[6-9]\d{9}$/.test(value)) {
-      message = "Enter a valid 10-digit Indian number starting with 6, 7, 8, or 9.";
+      message = "Invalid phone number";
     }
 
     field.setCustomValidity(message);
@@ -593,11 +625,6 @@
     errorElement.className = "field-error";
     errorElement.hidden = true;
     errorElement.setAttribute("role", "alert");
-    errorElement.style.gridColumn = "1 / -1";
-    errorElement.style.padding = "0 0 8px";
-    errorElement.style.color = "rgba(255, 146, 146, 0.9)";
-    errorElement.style.fontSize = "11px";
-    errorElement.style.lineHeight = "1.4";
     field.insertAdjacentElement("afterend", errorElement);
     field.setAttribute("aria-describedby", "project-form-error-" + field.name);
     errorElement.id = "project-form-error-" + field.name;
@@ -621,7 +648,11 @@
 
         event.preventDefault();
         nextField.focus();
-        nextField.setSelectionRange(nextField.value.length, nextField.value.length);
+        const supportsSelection = nextField.tagName === "TEXTAREA"
+          || ["password", "search", "tel", "text", "url"].includes(nextField.type);
+        if (supportsSelection) {
+          nextField.setSelectionRange(nextField.value.length, nextField.value.length);
+        }
       });
     }
   });
